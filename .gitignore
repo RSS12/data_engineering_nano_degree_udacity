@@ -1,0 +1,8 @@
+*.zip
+credentials
+redshift_cred
+.ipynb_checkpoints
+*.cfg
+pagila-master
+*__pycache__*
+lesson-3-demo-4-using-the-where-clause.ipynb
