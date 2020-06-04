@@ -1,6 +1,6 @@
 ## Capstone-Project
 
-#### Scope 
+#### Step1: Scope 
 
 **In this project I want to anylse immigration rate of different US states by Origin Countries**
 
@@ -22,7 +22,7 @@ data-lake involves 4 layers
 
 **Technologies**:
 1. AWS S3 for Data Lake
-2. Spark (can be used on emr cluster/ aws glue) 
+2. Spark : its a great fit for big data processing and analysis (can be used on emr cluster/ aws glue)
 3. AWS Redshift (This is used as it can handle  big data sets and number of concurrent users upto 500)
 4. We can schedule etl jobs by different approaches namely:
     - airflow 
