@@ -1,5 +1,4 @@
 ## Capstone-Project
-### Step 1: Scope the Project and Gather Data
 
 #### Scope 
 
@@ -150,11 +149,11 @@ This is self explaining dim with all date fields
 **further Analysis could be added**
 
 ### Step5:  How to run this project
-1. We can run bash_operator_etl.sh script to perform etl. It runs all python files required to perform etl with data quality checks
-2. We can bash_operator_analysis.sh script to perform analysis step with data quality check.
+1. run bash_operator_etl.sh script to perform etl. It runs all python files required to perform etl with data quality checks
+2. run bash_operator_analysis.sh script to perform analysis step with data quality check.
 3. All data-layers folders are empty.
-4. Please provide  these files '../../data/18-83510-I94-Data-#2016/i94_apr16_sub.sas7bdat' to perform all the process.
-5. dataset folder include csv files on weather and airport data. I am not uploading it.It was available in workspace
+4. Please provide  these files `../../data/18-83510-I94-Data-#2016/i94_apr16_sub.sas7bdat` to perform all the process.
+5. dataset folder include csv files on weather and airport data. I am not uploading it.It was available in docker workspace
 
 
 
