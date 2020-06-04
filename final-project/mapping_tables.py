@@ -10,7 +10,6 @@ mapping_tables:['country_mapping','mode_of_entry_mapping','port_entry_mapping','
 
 """
 
-
 import pandas as pd
 import json
 
@@ -18,7 +17,7 @@ import json
 from pyspark.sql import SparkSession
 spark = SparkSession.builder.getOrCreate()
 
-with open('immigration_mapping.json', 'r') as mp:
+with open('staging/immigration_mapping.json', 'r') as mp:
     matching_labels = json.load(mp)
     mp.close()
 
@@ -65,8 +64,9 @@ df_list = [country_mapping,mode_of_entry_mapping,port_entry_mapping,state_of_add
 dict_table_df = dict(list(zip(mapping_tables_list,df_list)))
 
 for k,v  in dict_table_df.items():
-    print("writing data is in overwrite mode")
-    save_parquet(df=dict_table_df[k] , path ='./data-transformed/mapping_tables',file_name= k)
+    
+    print(f"creating  {k}")
+    save_parquet(df=dict_table_df[k] , path ='./transformation/mapping_tables',file_name= k)
     
 
 ## Create date_dim
@@ -89,13 +89,13 @@ def create_date_table(start='2012-01-01', end='2030-12-31'):
 
 dim_date =  create_date_table()
 
-save_parquet(df=dim_date,path ='./data-transformed/mapping_tables',file_name= 'dim_date')
+save_parquet(df=dim_date,path ='./transformation/mapping_tables',file_name= 'dim_date')
 
 
 print("creating dim_us_demographics")
 print('='*50)
 ## create dim_us_demographics
-dim_us_demographics = spark.read.format("csv").load('us-cities-demographics.csv',header=True,sep=';')
+dim_us_demographics = spark.read.format("csv").load('datasets/us-cities-demographics.csv',header=True,sep=';')
 
 ## renaming columns to write into parquet formats
 dim_us_demographics = dim_us_demographics.\
@@ -111,7 +111,7 @@ dim_us_demographics = dim_us_demographics.\
                                 withColumnRenamed('Race','race').\
                                 withColumnRenamed('Count','house_holds').\
                                 withColumnRenamed('Number of Veterans','veterans').\
-                                write.mode('overwrite').parquet('./data-transformed/dim_us_demographics')
+                                write.mode('overwrite').parquet('./transformation/dim_us_demographics')
                                 
 
 
