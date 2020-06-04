@@ -55,11 +55,6 @@ In my use case , I want to perform analysis based on  immigrants comming to diff
 - `data is written in overwrite mode in parquet format. So all data related to a year and month is overwritten when etl.py file is running` 
 
 
-
-Depending on what you want to 
-Cleaning Steps
-Document steps necessary to clean the data
-
 ### Step3:  Data Model 
 - I have used database modeling tool to come up with data model.
 - Data Model is extensible, We can further add temperature data to perform in depth analysis 
