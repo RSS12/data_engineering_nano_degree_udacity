@@ -80,7 +80,7 @@ try:
     fact_us_immigrations.write.mode("overwrite").partitionBy('_year','_month').parquet('transformation/facts_immigration')
     
 except Exception as e:
-    print("data quality check failed with exception:\n {e}")    
+    print(f"data quality check failed with exception:\n {e}")    
 
 
 
