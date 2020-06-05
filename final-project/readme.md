@@ -63,37 +63,38 @@ In my use case , I want to perform analysis based on  immigrants comming to diff
 
 ### ETL Steps
 #### Extract
-* reading data from source sas data format
-  * `df_sas=spark.read.format('com.github.saurfang.sas.spark').load('../../data/18-83510-I94-Data-#2016/i94_apr16_sub.sas7bdat')`
+* read data from source sas data format
+    * `df_sas=spark.read.format('com.github.saurfang.sas.spark').load('../../data/18-83510-I94-Data-#2016/i94_apr16_sub.sas7bdat')`
 
-  * adding year and month columns to partition data
-    `df_sas = df_sas.withColumn("year",df_sas.i94yr.cast('integer')).withColumn("month",df_sas.i94mon.cast('integer'))`
+* add year and month columns to partition data
+    * `df_sas = df_sas.withColumn("year",df_sas.i94yr.cast('integer')).withColumn("month",df_sas.i94mon.cast('integer'))`
 
-    write data to raw layer
-  * `df_sas.write.mode("overwrite").partitionBy("year","month").parquet('raw/facts_air_immigration')`
+* write data to raw layer
+    * `df_sas.write.mode("overwrite").partitionBy("year","month").parquet('raw/facts_air_immigration')`
 
-  * reading data in parquet format from raw layer and **filter** it on **air_mode==1**
+* read data in parquet format from raw layer and **filter** it on **air_mode==1**
     * `df_parq = spark.read.parquet('raw/facts_air_immigration/year=*/month=*/*.parquet')`  
     * `df_parq_air =  df_parq.filter(df_parq.i94mode == 1)`
 
   *  extract json from I94_SAS_Labels_Description.SAS by running sas_labels_json.py
-  *  
+   
 #### Tranform
 * create  temp table to stage data to  perform transformations
   * `df_parq_air.createOrReplaceTempView('dataset')`
 
-* stage personal dimension by selecting required columns from the **dataset** view created in previous step. Please look at transformations_sql.py file to look for sql statement used in following step
+* stage personal dimension by selecting required columns from the **dataset** view created in previous step. 
+  * Please look at transformations_sql.py file to look for sql statement used in following step
   * `dim_personal_stg = spark.sql(transformations_sql.dim_personal_stg)`
 
-* writing this data to staging layer
+* write this data to staging layer
   * `dim_personal_stg.write.mode('overwrite').parquet('staging/dim_personal/')`
 
 
-* staging  facts data  
- perform query on **dataset** to select columns and rename columns, additionaly _year and _month columns are added to partition data 
-  * `facts_staging = spark.sql(transformations_sql.facts_staging)`
+* stage  facts data  
+  * perform query on **dataset** to select columns and rename columns, additionaly _year and _month columns are added to partition data 
+    * `facts_staging = spark.sql(transformations_sql.facts_staging)`
   
-  * saving this data frame to staging layer
+  * save this data frame to staging layer
    * `facts_staging.write.partitionBy("_year","_month").mode('overwrite').parquet("staging/facts_air_immigration")`
 
 
@@ -115,7 +116,7 @@ In my use case , I want to perform analysis based on  immigrants comming to diff
     * transformations_sql.check_dataframe_empty(fact_stg_read)
     * transformations_sql.check_dataframe_empty(personal_stg_read)
   
-  * keeping only entry_numbers in facts table we have in personal dimension by joining the tables
+  * keep only entry_numbers in facts table we have in personal dimension by joining the tables
     * `fact_us_immigrations= spark.sql(transformations_sql.fact_us_immigrations).drop_duplicates()`
 
  
