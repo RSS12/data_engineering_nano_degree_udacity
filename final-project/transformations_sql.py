@@ -1,6 +1,5 @@
-# pyspark sql to perform some transformations
 
-
+## spark sql for satging dim personal 
 dim_personal_stg = """
                 SELECT DISTINCT 
                 admnum as id, 
@@ -13,66 +12,65 @@ dim_personal_stg = """
                 
                 """
 
-
+## spark sql for transforming staged dim personal
 dim_personal= """
-                SELECT * from ds_personal_stg 
+                SELECT DISTINCT * from ds_personal_stg 
                 
                 WHERE id not in (
                         SELECT id from ds_personal_stg group by id having count(1)>1 
                          ) 
               """
 
-
-
-
+## spark sql for satging fact table 
 facts_staging = """
- SELECT 
- cicid,
- cast(i94yr as INTEGER) as  _year,
- cast(i94mon as INTEGER) as _month,
- cast(i94yr as INTEGER) as year,
- cast(i94mon as INTEGER) as month,
- admnum  as  entry_number,
- i94cit as origin_country_code,
- i94port as arrival_port_code,
- i94addr as sas_arrival_date,
- depdate as sas_departure_date,
- i94addr as  state_code,
- count,
- entdepd as departue_status,
- entdepu as departure_status_update
+                SELECT 
+                cicid,
+                cast(i94yr as INTEGER) as  _year,
+                cast(i94mon as INTEGER) as _month,
+                cast(i94yr as INTEGER) as year,
+                cast(i94mon as INTEGER) as month,
+                admnum  as  entry_number,
+                i94cit as origin_country_code,
+                i94port as arrival_port_code,
+                i94addr as sas_arrival_date,
+                depdate as sas_departure_date,
+                i94addr as  state_code,
+                count,
+                entdepd as departue_status,
+                entdepu as departure_status_update
+                
+                FROM dataset
  
- FROM dataset
- 
-"""
+                """
 
 
-
+## spark sql for transformations on staged facts
 fact_us_immigrations= """
-        SELECT 
-        A.cicid ,
-        A.year,
-        A.month,
-        A.year as _year,
-        A.month as _month,
-        B.id as entry_number,
-        A.origin_country_code,
-        A.arrival_port_code, 
-        A.sas_arrival_date,
-        A.sas_departure_date,
-        A.state_code,
-        A.count,
-        A.departue_status,
-        A.departure_status_update
+                        SELECT 
+                        A.cicid ,
+                        A.year,
+                        A.month,
+                        A.year as _year,
+                        A.month as _month,
+                        B.id as entry_number,
+                        A.origin_country_code,
+                        A.arrival_port_code, 
+                        A.sas_arrival_date,
+                        A.sas_departure_date,
+                        A.state_code,
+                        A.count,
+                        A.departue_status,
+                        A.departure_status_update
 
-        FROM dataset_stg as A
+                        FROM dataset_stg as A
 
-        JOIN
-        ds_personal as B
-        on A.entry_number = B.id
+                        JOIN
+                        ds_personal as B
+                        on A.entry_number = B.id
 
-        """
+                        """
 
+## function to convert sas date to date format
 def sas_date_convert(sas_date):
     """
     convert sas date format to date
@@ -81,7 +79,7 @@ def sas_date_convert(sas_date):
     """
     return pd.to_timedelta(sas_date, unit='D') + pd.Timestamp('1960-1-1') 
 
-
+## function to perform data quality check
 def check_dataframe_empty(df):
     
     """
