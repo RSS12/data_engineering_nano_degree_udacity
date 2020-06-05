@@ -83,7 +83,7 @@ In my use case , I want to perform analysis based on  immigrants comming to diff
   * `df_parq_air.createOrReplaceTempView('dataset')`
 
 * stage personal dimension by selecting required columns from the **dataset** view created in previous step. 
-  * Please look at transformations_sql.py file to look for sql statement used in following step
+  * Please look at transformations_sql.py file  for sql statement used in following step
   * `dim_personal_stg = spark.sql(transformations_sql.dim_personal_stg)`
 
 * write this data to staging layer
