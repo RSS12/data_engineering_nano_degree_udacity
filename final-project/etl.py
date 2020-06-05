@@ -36,7 +36,7 @@ dim_personal_stg = spark.sql(transformations_sql.dim_personal_stg)
 dim_personal_stg.write.mode('overwrite').parquet('staging/dim_personal/')
 
 
-# facts
+# stage facts
 facts_staging = spark.sql(transformations_sql.facts_staging)
 facts_staging.write.partitionBy("_year","_month").mode('overwrite').parquet("staging/facts_air_immigration")
 

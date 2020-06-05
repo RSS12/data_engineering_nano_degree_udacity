@@ -61,85 +61,156 @@ In my use case , I want to perform analysis based on  immigrants comming to diff
 ![Data Model](udacity_capstone_new.png)
 
 
+### ETL Steps
+#### Extract
+* reading data from source sas data format
+  * `df_sas=spark.read.format('com.github.saurfang.sas.spark').load('../../data/18-83510-I94-Data-#2016/i94_apr16_sub.sas7bdat')`
+
+  * adding year and month columns to partition data
+    `df_sas = df_sas.withColumn("year",df_sas.i94yr.cast('integer')).withColumn("month",df_sas.i94mon.cast('integer'))`
+
+    write data to raw layer
+  * `df_sas.write.mode("overwrite").partitionBy("year","month").parquet('raw/facts_air_immigration')`
+
+  * reading data in parquet format from raw layer and **filter** it on **air_mode==1**
+    * `df_parq = spark.read.parquet('raw/facts_air_immigration/year=*/month=*/*.parquet')`  
+    * `df_parq_air =  df_parq.filter(df_parq.i94mode == 1)`
+
+  *  extract json from I94_SAS_Labels_Description.SAS by running sas_labels_json.py
+  *  
+#### Tranform
+* create  temp table to stage data to  perform transformations
+  * `df_parq_air.createOrReplaceTempView('dataset')`
+
+* stage personal dimension by selecting required columns from the **dataset** view created in previous step. Please look at transformations_sql.py file to look for sql statement used in following step
+  * `dim_personal_stg = spark.sql(transformations_sql.dim_personal_stg)`
+
+* writing this data to staging layer
+  * `dim_personal_stg.write.mode('overwrite').parquet('staging/dim_personal/')`
+
+
+* staging  facts data  
+ perform query on **dataset** to select columns and rename columns, additionaly _year and _month columns are added to partition data 
+  * `facts_staging = spark.sql(transformations_sql.facts_staging)`
+  
+  * saving this data frame to staging layer
+   * `facts_staging.write.partitionBy("_year","_month").mode('overwrite').parquet("staging/facts_air_immigration")`
+
+
+* load dim personal from staging layer and remove duplicates (transformations_sql.py for queries)
+  * `personal_stg_read =spark.read.format("parquet").load('staging/dim_personal/') `
+  * `personal_stg_read.createOrReplaceTempView("ds_personal_stg")` (create view)
+  * `dim_personal= spark.sql(transformations_sql.dim_personal)`
+  
+
+* load facts from staging layer and remove all rows with duplicate immigrant entry number  
+     
+  * `dim_personal.createOrReplaceTempView('ds_personal')   `
+  
+  * `fact_stg_read = spark.read.parquet("staging/facts_air_immigration/_year=*/_month=*/*.parquet")`
+
+  * `fact_stg_read.createOrReplaceTempView("dataset_stg")`
+
+  * perform data quality checks to find out if stagged data sets are not empty
+    * transformations_sql.check_dataframe_empty(fact_stg_read)
+    * transformations_sql.check_dataframe_empty(personal_stg_read)
+  
+  * keeping only entry_numbers in facts table we have in personal dimension by joining the tables
+    * `fact_us_immigrations= spark.sql(transformations_sql.fact_us_immigrations).drop_duplicates()`
+
+ 
+### Load
+Transformed Data frames are written to Transformation layer
+* `dim_personal.write.mode("overwrite").parquet('./transformation/dim_personal')`
+* `fact_us_immigrations.write.mode("overwrite").partitionBy('_year','_month').parquet('transformation/facts_immigration')`
+
+* `mapping_tables.py` will create mapping tables as shown in Data model.
+
+
 ### Step4: Data Dictionary 
 #### Transformed layer from Data Lake
-**fact table**
-  - cicid: double (nullable = true)
-  - year: integer (nullable = true)
-  - month: integer (nullable = true)
-  - entry_number: double (nullable = true)
-  - origin_country_code: double (nullable = true)
-  - arrival_port_code: string (nullable = true)
-  - sas_arrival_date: string (nullable = true)
-  - sas_departure_date: double (nullable = true)
-  - state_code: string (nullable = true)
-  - count: double (nullable = true)
-  - departue_status: string (nullable = true)
-  - departure_status_update: string (nullable = true)
+**facts_immigration**
+  - cicid: surrogate key
+  - year: 4 digits integer
+  - month: 2 digits integer
+  - entry_number: unique entry number allocated to an immigrant  
+  - origin_country_code: code of the origin coutry^11   
+  - arrival_port_code: 3 digits arrival port code
+  - sas_arrival_date: arrival date
+  - sas_departure_date: departure date 
+  - state_code: us state code
+  - count: immigrant count(always 1 for each row)
+  - departue_status: departure flag - departed, lost i-94 or is deceased 
+  - departure_status_update: update flag - either apprehended, overstayed, adjusted to perm residence
 
 **dim_personal**
-  - id: double (nullable = true)
-  - gender: string (nullable = true)
-  - birth_year: double (nullable = true)
-  - entry_mode: double (nullable = true)
-  - visa_category: double (nullable = true)
-  - origin_country: double (nullable = true)
+  - id: unique entry number allocated to an immigrant  
+  - gender: gender
+  - birth_year: birth year 
+  - entry_mode: entry mod code (1,2,3)
+  - visa_category: visa category code
+  - origin_country: code of the origin coutry
 
 
 **dim_us_demographics**
-  - city: string (nullable = true)
-  - state: string (nullable = true)
-  - median_age: string (nullable = true)
-  - males: string (nullable = true)
-  - females: string (nullable = true)
-  - total_population: string (nullable = true)
-  - veterans: string (nullable = true)
-  - Foreign-born: string (nullable = true)
-  - average_household: string (nullable = true)
-  - state_code: string (nullable = true)
-  - race: string (nullable = true)
-  - house_holds: string (nullable = true)
+  - city: city
+  - state: state
+  - median_age: median_age
+  - males: males
+  - females: females
+  - total_population: total_population
+  - veterans: veterans
+  - foreign-born: foreign-born
+  - average_household: average_household
+  - state_code: state_code
+  - race: race
+  - house_holds: house_holds
 
 
 **dim_date**
-This is self explaining dim with all date fields
+ - Date: date 
+ - Date_key: date in int format
+ - Day: day name
+ - Week: week number 
+ - Quarter: quarter number
+ - Year: 4 digit integer  
+ - Year_half: 1 digit integer
 
 **country_mapping**
- - code: string (nullable = true)
- - country: string (nullable = true)
+ - code: Code of the origin coutry
+ - country: country name
 
 **mode_of_entry_mapping**
- - id: string (nullable = true)
- - entry_mode: string (nullable = true)
+ - id: mode of entry code
+ - entry_mode: type of entry mode
 
 **port_entry_mapping**
- - id: string (nullable = true)
- - entry_port: string (nullable = true)
- - city: string (nullable = true)
- - state: string (nullable = true)
- - state_1: string (nullable = true) (In case field has 2 delimeters, can be ignored)
+ - id: port code
+ - entry_port: name of entry port
+ - city: city of entry port
+ - state: US state code
+ - state_1: In case field has 2 delimeters, can be ignored
 
 **state_of_address_mapping**
- - id: string (nullable = true)
- - state_name: string (nullable = true)   
+ - id: state id
+ - state_name: state_name
 
 **visa_cat_mapping**
- - id: string (nullable = true)
- - visa_type: string (nullable = true)
+ - id: visa category id
+ - visa_type: visa type business, study , travel
 
 
 #### Step4.1:  Analysis layer from Data Lake
 
 **immigration_rate_us_states**
- - year: integer (nullable = true)
- - month: integer (nullable = true)
- - state_name: string (nullable = true)
- - country: string (nullable = true) : origin country
- - total_immigrants: double (nullable = true)
- - total_immigrants_state: double (nullable = true)
- - immigrants_by_country: double (nullable = true)
- - percent_total: double (nullable = true) percent total for each state comming from different origin countries
-
+ - year:  4 digits integer
+ - month: 2 digits integer 
+ - state_name: name of us state
+ - country: origin country name
+ - total_immigrants: total immigrants in this month and year
+ - total_immigrants_state: total immigrants of us state
+ - immigrants_by_country: immigrant by country
+ - percent_total: percent total for each state comming from different origin countries
 
 **further Analysis could be added**
 
@@ -149,6 +220,29 @@ This is self explaining dim with all date fields
 3. All data-layers folders are empty.
 4. Please provide  these files `../../data/18-83510-I94-Data-#2016/i94_apr16_sub.sas7bdat` to perform all the process.
 5. dataset folder include csv files on weather and airport data. I am not uploading it.It was available in docker workspace
+
+### Step6: Project write up
+
+### 6.1 Purpose of  Data Model
+- This data will be used to perform analysis on immigration rate of different US states with respect to origin countries.
+- Data will be used internally by BI/Analyst team.
+- Analysis data is loaded to Analysis layer on S3 and AWS Redshift as well.
+  - Users can connect directly to Redshift by using BI tools like Tableau, Qlik, Power BI etc
+  - Users can also access data on S3 using AWS Athena and AWS QuickSight
+
+
+### 6.2 scenarios
+
+**The data was increased by 100x** 
+- Storing analysis data in Analysis layer using S3 and then loading data into AWS Data warehouse Redshift which is optimized for read heavy workloads and aggregations, can handle this scenario.
+  
+**The pipelines would be run on a daily basis by 7 am every day.**
+- Using Airflow dags,theywhich can be scheduled to run when using cron job.
+  
+**The database needed to be accessed by 100+ people.**
+- Using Redshift will also cater to this scenario.
+
+
 
 
 
