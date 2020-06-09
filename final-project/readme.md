@@ -237,7 +237,7 @@ Transformed Data frames are written to Transformation layer
 **The data was increased by 100x** 
 - Storing analysis data in Analysis layer using S3 and then loading data into AWS Data warehouse Redshift which is optimized for read heavy workloads and aggregations, can handle this scenario.
   
-**The pipelines would be run on a daily basis by 7 am every day.**
+**The pipelines would be running on a daily basis by 7 am every day.**
 - Using Airflow dags,theywhich can be scheduled to run when using cron job.
   
 **The database needed to be accessed by 100+ people.**
